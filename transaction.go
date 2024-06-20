@@ -163,7 +163,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		dataToVerify := fmt.Sprintf("%x\n", txCopy)
 
 		rawPubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
-		if ecdsa.Verify(&rawPubKey, []byte(dataToVerify), &r, &s) == false {
+		if !ecdsa.Verify(&rawPubKey, []byte(dataToVerify), &r, &s) {
 			return false
 		}
 		txCopy.Vin[inID].PubKey = nil
@@ -173,6 +173,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 }
 
 // NewCoinbaseTX creates a new coinbase transaction
+
 func NewCoinbaseTX(to, data string) *Transaction {
 	if data == "" {
 		randData := make([]byte, 20)
@@ -197,35 +198,43 @@ func NewUTXOTransaction(wallet *Wallet, to string, amount int, UTXOSet *UTXOSet)
 	var inputs []TXInput
 	var outputs []TXOutput
 
+	// Get the public key hash of the wallet
 	pubKeyHash := HashPubKey(wallet.PublicKey)
-	acc, validOutputs := UTXOSet.FindSpendableOutputs(pubKeyHash, amount)
 
+	// Find spendable outputs for the given amount
+	acc, validOutputs := UTXOSet.FindSpendableOutputs(pubKeyHash, amount)
 	if acc < amount {
 		log.Panic("ERROR: Not enough funds")
 	}
 
-	// Build a list of inputs
+	// Build a list of inputs from the valid outputs
 	for txid, outs := range validOutputs {
 		txID, err := hex.DecodeString(txid)
 		if err != nil {
 			log.Panic(err)
 		}
 
-		for _, out := range outs {
-			input := TXInput{txID, out, nil, wallet.PublicKey}
+		for _, outIndex := range outs {
+			input := TXInput{txID, outIndex, nil, wallet.PublicKey}
 			inputs = append(inputs, input)
 		}
 	}
 
-	// Build a list of outputs
-	from := fmt.Sprintf("%s", wallet.GetAddress())
+	// Create an output for the recipient
 	outputs = append(outputs, *NewTXOutput(amount, to))
+
+	// Create a change output if there is any change
+
 	if acc > amount {
-		outputs = append(outputs, *NewTXOutput(acc-amount, from)) // a change
+		changeAddress := fmt.Sprintf("%s", wallet.GetAddress())
+		outputs = append(outputs, *NewTXOutput(acc-amount, changeAddress)) // change output
 	}
 
+	// Create the transaction
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
+
+	// Sign the transaction
 	UTXOSet.Blockchain.SignTransaction(&tx, wallet.PrivateKey)
 
 	return &tx

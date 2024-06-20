@@ -66,7 +66,7 @@ func (ws *Wallets) LoadFromFile(nodeID string) error {
 	}
 
 	var wallets Wallets
-	gob.Register(elliptic.P256())
+	//gob.Register(elliptic.P256())
 	decoder := gob.NewDecoder(bytes.NewReader(fileContent))
 	err = decoder.Decode(&wallets)
 	if err != nil {
@@ -80,17 +80,25 @@ func (ws *Wallets) LoadFromFile(nodeID string) error {
 
 // SaveToFile saves wallets to a file
 func (ws Wallets) SaveToFile(nodeID string) {
+	// Create a buffer to hold the serialized data
 	var content bytes.Buffer
+
+	// Format the filename using the nodeID
 	walletFile := fmt.Sprintf(walletFile, nodeID)
 
+	// Register the elliptic curve with the gob package
 	gob.Register(elliptic.P256())
 
+	// Create a new encoder that writes to the buffer
 	encoder := gob.NewEncoder(&content)
+
+	// Encode the Wallets object into the buffer
 	err := encoder.Encode(ws)
 	if err != nil {
 		log.Panic(err)
 	}
 
+	// Write the buffer's content to the file
 	err = ioutil.WriteFile(walletFile, content.Bytes(), 0644)
 	if err != nil {
 		log.Panic(err)

@@ -203,7 +203,7 @@ func handleBlock(request []byte, bc *Blockchain) {
 	bc.AddBlock(block)
 
 	fmt.Printf("Added block %x\n", block.Hash)
-
+	fmt.Printf("Merkle root %x\n", block.HashTransactions())
 	if len(blocksInTransit) > 0 {
 		blockHash := blocksInTransit[0]
 		sendGetData(payload.AddrFrom, "block", blockHash)
@@ -421,7 +421,9 @@ func handleConnection(conn net.Conn, bc *Blockchain) {
 func StartServer(nodeID, minerAddress string) {
 	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
 	miningAddress = minerAddress
+
 	ln, err := net.Listen(protocol, nodeAddress)
+
 	if err != nil {
 		log.Panic(err)
 	}
@@ -440,6 +442,7 @@ func StartServer(nodeID, minerAddress string) {
 		}
 		go handleConnection(conn, bc)
 	}
+
 }
 
 func gobEncode(data interface{}) []byte {

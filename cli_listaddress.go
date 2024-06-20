@@ -13,6 +13,6 @@ func (cli *CLI) listAddresses(nodeID string) {
 	addresses := wallets.GetAddresses()
 
 	for _, address := range addresses {
-		fmt.Println(address)
+		fmt.Printf("Address : %s\n", address)
 	}
 }

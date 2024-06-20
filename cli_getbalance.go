@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 func (cli *CLI) getBalance(address, nodeID string) {
 	if !ValidateAddress(address) {
-		log.Panic("ERROR: Address is not valid")
+		log.Println("ERROR: Address is not valid")
+		os.Exit(1)
 	}
+
 	bc := NewBlockchain(nodeID)
 	UTXOSet := UTXOSet{bc}
 	defer bc.db.Close()
